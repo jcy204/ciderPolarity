@@ -6,7 +6,8 @@ from scipy.sparse import diags, lil_matrix
 from gensim.matutils import corpus2csc
 from gensim.corpora import Dictionary
 from tqdm.auto import tqdm
-from utils_funcs import text_iterate
+from .utils_funcs import text_iterate
+
 
 
 

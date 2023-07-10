@@ -1,13 +1,14 @@
-from suggest_seeds import set_seeds, custom_seeds, seed_dict
-from stopwords import stoplist
-import load_polarities
-import create_embeddings
-import run_bootstrapping
-import create_vader
-import utils_funcs
+from .suggest_seeds import set_seeds, custom_seeds, seed_dict
+from .stopwords import stoplist
+from . import load_polarities
+from . import create_embeddings
+from . import run_bootstrapping
+from . import create_vader
+from . import utils_funcs
 import warnings
 import pickle
 import os
+
 
 
 

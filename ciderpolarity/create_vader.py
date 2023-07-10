@@ -1,6 +1,7 @@
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import orjson
-from utils_funcs import text_iterate
+from .utils_funcs import text_iterate
+
 
 SIA = SentimentIntensityAnalyzer()
 r_arg = {'pct':True,'method':'dense'}
