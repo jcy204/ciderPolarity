@@ -5,7 +5,7 @@ CIDER is a Python library used to improve domain-specific sentiment analysis.
 It generates, filters, and substitutes polarities into [VADER](https://github.com/cjhutto/vaderSentiment/). 
 The approach taken to generate polarities is taken from [SocialSent](https://github.com/williamleif/socialsent).
 
-## Table of Contents
+## Contents
 
 - [Installation](#installation)
 - [Overview](#overview)
