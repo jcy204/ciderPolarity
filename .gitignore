@@ -1,0 +1,4 @@
+*.pyc
+**/__pycache__/
+/Function_Tests/test_outputs/
+/dist/
