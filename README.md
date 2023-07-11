@@ -22,7 +22,7 @@ Before you begin, ensure you have met the following requirements:
 To install CIDER, follow these steps:
 
 ```bash
-pip install ciderPolarity
+pip install ciderpolarity
 ```
 
 ## Overview
@@ -30,9 +30,19 @@ pip install ciderPolarity
 The easiest way to use the package is as follows:
 
 ```python
-from ciderPolarity import CIDER
+from ciderpolarity import CIDER
 
-input_file = '/path/to/input/file.csv'
+# For a running example, the ideal input will have many thousands of lines.
+texts = ['Really hate this heat. Just want AC',
+         'I love an icecream in this heat!',
+         'I’m melting - terrible weather!',
+         'Very dehydrated in this heat',
+                ...                    ,
+         'this sunny weather is great',
+         'Oh my icecream is melting',
+         'My AC is broken! 🥵'],
+
+
 output_folder = '/path/to/output/folder/'
 
 cdr = CIDER(input_file, output_folder)
@@ -47,10 +57,10 @@ results = [
     ['I love an icecream in this heat!', {"neg":0.0, "neu":0.5, "pos":0.5, "compound":0.6}],
     ['I’m melting - terrible weather!', {"neg":0.7, "neu":0.3, "pos":0.0, "compound":-0.7}],
     ['Very dehydrated in this heat', {"neg":0.5, "neu":0.4, "pos":0.0, "compound":-0.5}],
-    ['This sunny weather is great', {"neg":0.0, "neu":0.2, "pos":0.8, "compound":0.7}],
+            ...
+    ['this sunny weather is great', {"neg":0.0, "neu":0.2, "pos":0.8, "compound":0.7}],
     ['Oh my icecream is melting', {"neg":0.3, "neu":0.4, "pos":0.3, "compound":0.0}],
     ['My AC is broken! 🥵', {"neg":0.6, "neu":0.4, "pos":0.0, "compound":-0.6}],
-              ...
 ]
 
 ```
@@ -67,10 +77,10 @@ NEG_seeds = {'bad':1, 'horrible':2, 'hate':4, 'crappy':1, 'sad':2, 'bitch':1, 'h
 input_file = '/path/to/input/file.csv'
 output = '/path/to/output/test_outputs/'
 
-cdr_example = CIDER(input_file,                   # input path
+cdr_example = CIDER(input_file,                   # input path (one column csv file where each row is a text entry)
                     output,                       # output path
                     iterations=100,               # number of iterations for bootstrapped label propagation
-                    stopwords=['i', 'it', 'the'], # custom stopwords, alternativly set as 'nltk' for their set
+                    stopwords=['i', 'it', 'the'], # custom stopwords, alternativly set as 'default' for the nltk set
                     keep=['code', 'python'],      # words to force into the final lexicon
                     no_below=5,                   # exclude words that occur fewer times than this
                     max_polarities_returned=3000, # maximum number of words returned
@@ -79,7 +89,7 @@ cdr_example = CIDER(input_file,                   # input path
                     verbose=False)                # whether to print progress or not
 ```
 
-The if just training the model is desired, the following can be executed:
+If the model only requires training, the following can be executed:
 
 ```python
 cdr_example.fit()
@@ -93,7 +103,7 @@ ___
 
 ### Generating Seedwords
 
-Whilst CIDER has built in seed words (found [here](CIDER/suggest_seeds.py)), custom seed words can be generated. The following shows how this is carried out:
+Whilst CIDER has built in seed words (found [here](CIDER/suggest_seeds.py)), custom seed words can be generated and suggested. The following shows how this is carried out:
 
 ```python
 Pos, Neg = cdr_example.generate_seeds(['good','brilliant','love'],['bad','terrible','hate'], n=20, sentiment = True)
