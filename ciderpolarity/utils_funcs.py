@@ -1,5 +1,4 @@
 from tqdm.auto import tqdm
-import orjson
 import csv
 
 from string import punctuation

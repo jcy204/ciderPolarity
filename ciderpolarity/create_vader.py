@@ -1,5 +1,5 @@
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-import orjson
+import json
 from .utils_funcs import text_iterate
 
 
@@ -59,11 +59,11 @@ def apply_vader(self,save_outputs,return_outputs):
     
     if save_outputs:
         if self.VERBOSE: print(f"Saving Classified Text to: {self.paths['output_pols']}")
-        with open(self.paths['output_pols'],'wb') as newfile:
+        with open(self.paths['output_pols'],'w') as newfile:
             for row in text_iterate(self, show=self.VERBOSE):
                 result = [row, self.classify.polarity_scores(row)]
-                output = orjson.dumps({'body':result[0],'polarity':result[1]})
-                newfile.write(output+b'\n')
+                output = json.dumps({'body':result[0],'polarity':result[1]})
+                newfile.write(output+'\n')
                 
                 if return_outputs:
                     results.append(result)
