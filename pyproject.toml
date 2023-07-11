@@ -1,12 +1,19 @@
 [tool.poetry]
 name = "ciderpolarity"
-version = "0.1.2"
+version = "0.1.84"
 description = ""
 authors = ["jcy204 <jcy204@exeter.ac.uk>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.5"
+python = "^3.7,<3.13"
+gensim = "^4.1.0"
+numpy = "^1.22.0"
+pandas = "^1.4.0"
+scikit-learn = "^1.1.0"
+scipy = "^1.8.0"
+tqdm = "^4.55.0"
+vadersentiment = "^3.3.2"
 
 
 [build-system]

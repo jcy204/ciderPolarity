@@ -98,7 +98,7 @@ cdr_example.fit()
 
 And the resulting polarities (before filtering and scaling) can be viewed:
 
-<img src="https://github.com/jcy204/CIDER/assets/56788220/3c7f49da-f502-4c30-86e8-ed941d0749f6" alt="drawing" width="500"/>
+<img src="https://github-production-user-asset-6210df.s3.amazonaws.com/56788220/251195100-3c7f49da-f502-4c30-86e8-ed941d0749f6.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20230711%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230711T112345Z&X-Amz-Expires=300&X-Amz-Signature=8f794c1c9cba958d43e01539bd83e90c8cc8e34b8c67b49cafd8cadface1f20d&X-Amz-SignedHeaders=host&actor_id=56788220&key_id=0&repo_id=662088015" alt="drawing" width="500"/>
 
 ___
 
