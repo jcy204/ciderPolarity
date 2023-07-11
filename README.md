@@ -40,7 +40,7 @@ texts = ['Really hate this heat. Just want AC',
                 ...                    ,
          'this sunny weather is great',
          'Oh my icecream is melting',
-         'My AC is broken! 🥵'],
+         'My AC is broken! 🥵']
 
 
 output_folder = '/path/to/output/folder/'
@@ -60,7 +60,7 @@ results = [
             ...
     ['this sunny weather is great', {"neg":0.0, "neu":0.2, "pos":0.8, "compound":0.7}],
     ['Oh my icecream is melting', {"neg":0.3, "neu":0.4, "pos":0.3, "compound":0.0}],
-    ['My AC is broken! 🥵', {"neg":0.6, "neu":0.4, "pos":0.0, "compound":-0.6}],
+    ['My AC is broken! 🥵', {"neg":0.6, "neu":0.4, "pos":0.0, "compound":-0.6}]
 ]
 
 ```

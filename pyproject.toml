@@ -1,9 +1,11 @@
 [tool.poetry]
 name = "ciderpolarity"
-version = "0.2.1"
+version = "0.2.2"
 description = ""
 authors = ["jcy204 <jcy204@exeter.ac.uk>"]
 readme = "README.md"
+homepage = "https://github.com/jcy204/ciderPolarity"
+repository = "https://github.com/jcy204/ciderPolarity"
 
 [tool.poetry.dependencies]
 python = "^3.7,<3.13"
