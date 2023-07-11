@@ -26,7 +26,7 @@ def text_iterate(SS, show=False, full=False):
                         disable=not show):
             yield row
     else:
-        with open(SS.FILEINPUT) as f:
+        with open(SS.FILEINPUT, encoding='utf-8') as f:
             reader = csv.reader(f)
             for row in tqdm(reader, total=SS.LINES, disable=not show):
                 if full:
