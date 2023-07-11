@@ -1,6 +1,6 @@
 # CIDER Python Package
 
-CIDER is a Python library used to improve domain-specific sentiment analysis.
+CIDER (Context Informed Dictionary and sEntiment Reasoner) is a Python library used to improve domain-specific sentiment analysis.
 
 It generates, filters, and substitutes polarities into [VADER](https://github.com/cjhutto/vaderSentiment/). 
 The approach taken to generate polarities is taken from [SocialSent](https://github.com/williamleif/socialsent).
@@ -27,26 +27,15 @@ pip install ciderPolarity
 
 ## Overview
 
-The simplest way to use the package is as follows:
+The easiest way to use the package is as follows:
 
 ```python
 from ciderPolarity import CIDER
 
-# List of strings from your domain
-text = [
-  'Really hate this heat. Just want AC',
-  'I love an icecream in this heat!',
-  'I’m melting - terrible weather!',
-  'Very dehydrated in this heat',
-  'This sunny weather is great',
-  'Oh my icecream is melting',
-  'My AC is broken! 🥵',
-              ...
-]
+input_file = '/path/to/input/file.csv'
+output_folder = '/path/to/output/folder/'
 
-output_folder = '/path/to/output'
-
-cdr = CIDER(text, output_folder)
+cdr = CIDER(input_file, output_folder)
 results = cdr.fit_transform()
 ```
 
@@ -75,10 +64,10 @@ Applying CIDER to a saved dataset, adding custom seed words, custom stopwords, a
 POS_seeds = {'lovely':1, 'excellent':2, 'fortunate':4, 'excited':1, 'loves':2, '♥':1, '🙂':2}
 NEG_seeds = {'bad':1, 'horrible':2, 'hate':4, 'crappy':1, 'sad':2, 'bitch':1, 'hates':2}
 
-path = '/path/to/input/test_data.json'
+input_file = '/path/to/input/file.csv'
 output = '/path/to/output/test_outputs/'
 
-cdr_example = CIDER(path,                         # input path
+cdr_example = CIDER(input_file,                   # input path
                     output,                       # output path
                     iterations=100,               # number of iterations for bootstrapped label propagation
                     stopwords=['i', 'it', 'the'], # custom stopwords, alternativly set as 'nltk' for their set
