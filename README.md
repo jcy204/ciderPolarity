@@ -32,24 +32,15 @@ The easiest way to use the package is as follows:
 ```python
 from ciderpolarity import CIDER
 
-# For a running example, the ideal input will have many thousands of lines.
-texts = ['Really hate this heat. Just want AC',
-         'I love an icecream in this heat!',
-         'I’m melting - terrible weather!',
-         'Very dehydrated in this heat',
-                ...                    ,
-         'this sunny weather is great',
-         'Oh my icecream is melting',
-         'My AC is broken! 🥵']
-
-
+# download the following from https://github.com/jcy204/ciderPolarity/tree/main/tests/test_data.csv
+input_data = 'test_data.csv'
 output_folder = '/path/to/output/folder/'
 
-cdr = CIDER(input_file, output_folder)
+cdr = CIDER(input_data, output_folder)
 results = cdr.fit_transform()
 ```
 
-This trains the model, creating a customised VADER classifier, before classifying the provided input using the model. An example output is as follows:
+This trains the model, creating a customised VADER classifier, before classifying the provided input using the model. A ficticious example output is as follows:
 
 ```python
 results = [
@@ -103,7 +94,7 @@ ___
 
 ### Generating Seedwords
 
-Whilst CIDER has built in seed words (found [here](CIDER/suggest_seeds.py)), custom seed words can be generated and suggested. The following shows how this is carried out:
+Whilst CIDER has built in seed words (found [here](ciderpolarity/suggest_seeds.py)), custom seed words can be generated and suggested. The following shows how this is carried out:
 
 ```python
 Pos, Neg = cdr_example.generate_seeds(['good','brilliant','love'],['bad','terrible','hate'], n=20, sentiment = True)
