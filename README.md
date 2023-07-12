@@ -32,7 +32,9 @@ The easiest way to use the package is as follows:
 ```python
 from ciderpolarity import CIDER
 
-# download the following from https://github.com/jcy204/ciderPolarity/tree/main/tests/test_data.csv
+# download test data from: https://github.com/jcy204/ciderPolarity/tree/main/tests/test_data.csv
+# data input is either a one column csv file where each row is a text entry, or list of strings
+
 input_data = 'test_data.csv'
 output_folder = '/path/to/output/folder/'
 
@@ -59,16 +61,16 @@ results = [
 ## Examples
 **Some alternative ways to use the library are as follows:**
 
-Applying CIDER to a saved dataset, adding custom seed words, custom stopwords, and tuning various parameters:
+Applying CIDER to a list of strings, adding custom seed words, custom stopwords, and tuning various parameters:
 
 ```python
 POS_seeds = {'lovely':1, 'excellent':2, 'fortunate':4, 'excited':1, 'loves':2, '♥':1, '🙂':2}
 NEG_seeds = {'bad':1, 'horrible':2, 'hate':4, 'crappy':1, 'sad':2, 'bitch':1, 'hates':2}
 
-input_file = '/path/to/input/file.csv'
+input_data = ['list of strings']
 output = '/path/to/output/test_outputs/'
 
-cdr_example = CIDER(input_file,                   # input path (one column csv file where each row is a text entry)
+cdr_example = CIDER(input_data,                   # input data 
                     output,                       # output path
                     iterations=100,               # number of iterations for bootstrapped label propagation
                     stopwords=['i', 'it', 'the'], # custom stopwords, alternativly set as 'default' for the nltk set
