@@ -7,7 +7,12 @@ SIA = SentimentIntensityAnalyzer()
 r_arg = {'pct':True,'method':'dense'}
 
 ################################ CHECK THESE THRESHOLDS ####################################
-def modify_vader(SS):
+def modify_vader(SS,remove_neutral=True):
+    '''
+    remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
+                            classifies as neutral   
+    '''
+
     try: 
         df = SS.polarities
     except:
@@ -16,6 +21,8 @@ def modify_vader(SS):
     
     ## Filter DF
     df_pos, df_neg, remove = filter_df(df, SS.NEU_THRESH, SS.VAR_UPPER, SS.VAR_LOWER)
+    if remove_neutral == False:
+        remove = []
     return make_VADER_custom(df_pos, df_neg, remove)
 
     

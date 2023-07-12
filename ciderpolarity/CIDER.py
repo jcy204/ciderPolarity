@@ -140,13 +140,15 @@ class CIDER:
     
 
 
-    def fit(self, full_run=True):
+    def fit(self, full_run=True, remove_neutral=True):
         '''
         Train CIDER and fit a VADER model on the outputs
 
         Parameters
         ----------
         full_run - BOOL - set as False to just return previously executed results
+        remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
+                                classifies as neutral
         '''
         if full_run:
             ## Generating embeddings
@@ -165,7 +167,7 @@ class CIDER:
         
         ## Loading Polarities
         self.create_df()
-        self.train_VADER()
+        self.train_VADER(remove_neutral)
 
 
 
@@ -182,7 +184,7 @@ class CIDER:
     
 
 
-    def fit_transform(self, save_outputs=False, return_outputs = True, full_run = True):
+    def fit_transform(self, save_outputs=False, return_outputs = True, full_run = True, remove_neutral=True):
         '''
         Train CIDER and fit a VADER model on the outputs. Apply fitted VADER model on the inputs
         
@@ -191,9 +193,10 @@ class CIDER:
         save_outputs - BOOL - save the outputs into .json file
         return_outputs - BOOL - return the outputs as a list
         full_run - BOOL - set as False to just return previously executed results
-
+        remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
+                                classifies as neutral
         '''
-        self.fit(full_run)
+        self.fit(full_run, remove_neutral)
         return self.transform(save_outputs, return_outputs)
     
 
@@ -204,9 +207,15 @@ class CIDER:
 
 
 
-    def train_VADER(self):
-        'trains VADER only'
-        self.classify = create_vader.modify_vader(self)
+    def train_VADER(self,remove_neutral=True):
+        '''
+        trains VADER only        
+        Parameters
+        ----------
+        remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
+                                classifies as neutral
+        '''
+        self.classify = create_vader.modify_vader(self,remove_neutral)
         
 
     def clean_text(self,text):
