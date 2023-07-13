@@ -1,4 +1,7 @@
-from tqdm.auto import tqdm
+try:
+    from tqdm.auto import tqdm
+except:
+    from tqdm import tqdm
 import csv
 
 from string import punctuation

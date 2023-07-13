@@ -2,7 +2,10 @@ from sklearn import preprocessing
 from collections import Counter
 from scipy import sparse
 import numpy as np
-from tqdm.auto import tqdm
+try:
+    from tqdm.auto import tqdm
+except:
+    from tqdm import tqdm
 import json
 
 

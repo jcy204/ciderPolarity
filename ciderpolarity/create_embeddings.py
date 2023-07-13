@@ -5,7 +5,10 @@ from scipy.sparse.linalg import svds
 from scipy.sparse import diags, lil_matrix
 from gensim.matutils import corpus2csc
 from gensim.corpora import Dictionary
-from tqdm.auto import tqdm
+try:
+    from tqdm.auto import tqdm
+except:
+    from tqdm import tqdm
 from .utils_funcs import text_iterate
 
 
