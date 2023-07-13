@@ -27,7 +27,7 @@ class CIDER:
                  predefined_seeds='derived_twitter',
                  max_polarities_returned=5000,
                  preprocessing = 'default',
-                 stopwords='nltk',
+                 stopwords='default',
                  iterations=100,
                  verbose=True,
                  no_below=100,
