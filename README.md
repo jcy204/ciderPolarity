@@ -10,7 +10,7 @@ The approach taken to generate polarities is taken from [SocialSent](https://git
 - [Installation](#installation)
 - [Overview](#overview)
 - [Examples](#examples)
-
+- [Alternative Scales](#alternativescales)
 
 ## Installation
 
@@ -90,7 +90,7 @@ cdr_example.fit()
 
 And the resulting polarities (before filtering and scaling) can be viewed:
 
-<img src="https://github.com/jcy204/ciderPolarity/blob/main/cdr_out_example.png?raw=true" alt="drawing" width="500"/>
+<img src="https://github.com/jcy204/ciderPolarity/blob/main/figs/cdr_out_example.png?raw=true" alt="drawing" width="500"/>
 
 ___
 
@@ -107,3 +107,20 @@ The following returns all words in the data, alongside their seed word suitabili
 ```python
 df = cdr_example.generate_seeds(['good','brilliant','love'],['bad','terrible','hate'], return_all = True, sentiment = True)
 ```
+
+## Alternative Scales
+
+CIDER is not limited to sentiment. By initiating the model with alternative sets of seed words, non-intuitive linguistic scales can be produced. For instance:
+```python
+from ciderpolarity import CIDER
+
+input_data = 'test_data.csv'
+output_folder = '/path/to/output/folder/'
+
+cdr = CIDER(input_data, output_folder, predefined_seeds = 'gender')
+cdr.fit()
+```
+The above creates a linguistic scale based off of proximity to gendered seed words (i.e. 'he', 'him', 'brother' and 'she', 'her', 'sister').
+Below shows a sample output for this scale when applied to all of the tweets from the UK in 2020.
+<img src="https://github.com/jcy204/ciderPolarity/blob/main/figs/genderpols.png?raw=true" alt="drawing" width="850"/>
+
