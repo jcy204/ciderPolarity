@@ -35,12 +35,11 @@ def make_df(SS):
     word_freq = Counter({i[0]:i[1] for i in index.most_common()})
     df['freq'] = df.index.map(word_freq)     
         
+
     if SS.CI:
         df[f'CI_{SS.CI}'] = df['polarity'].apply(lambda x: st.norm.interval(confidence=0.95,scale=st.sem(x))[1])
-        
     if SS.STD:
         df['polarity_std'] = df['polarity'].apply(np.std)
-        
     
     ### Vader
     SIA = SentimentIntensityAnalyzer()
@@ -61,6 +60,14 @@ def make_df(SS):
         
     scale = df.polarity.abs().max()
     df['polarity'] = 4*df.polarity/scale
-    df = df[['polarity','VADER','polarity_std','pos_prox','neg_prox','freq']]
+
+    keep = ['polarity','VADER','pos_prox','neg_prox','freq']
+    if SS.CI:
+        df[f'CI_{SS.CI}'] = 4*df[f'CI_{SS.CI}']/scale
+        keep.append(f'CI_{SS.CI}')
+    if SS.STD:
+        df['polarity_std'] = 4*df['polarity_std']/scale
+        keep.append('polarity_std')
+    df = df[keep]
 
     return df.sort_values('polarity')
