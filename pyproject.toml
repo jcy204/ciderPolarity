@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ciderpolarity"
-version = "0.2.8"
+version = "0.2.9"
 description = ""
 authors = ["jcy204 <jcy204@exeter.ac.uk>"]
 readme = "README.md"

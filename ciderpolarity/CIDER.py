@@ -5,6 +5,7 @@ from . import create_embeddings
 from . import run_bootstrapping
 from . import create_vader
 from . import utils_funcs
+from . import __version__
 import warnings
 import pickle
 import os
@@ -66,6 +67,8 @@ class CIDER:
         no_below - INT - exclude words that occur less frequently than this
         keep - LIST/None - List of words to prevent being excluded
         '''
+        self.__version__ = __version__
+        
         if type(fileinput) == str:
             if not os.path.isfile(fileinput):
                 raise FileNotFoundError('No file exists at the location specified')
