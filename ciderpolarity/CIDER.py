@@ -13,14 +13,6 @@ import os
 
 
 
-
-
-
-
-
-
-
-
 class CIDER:
 
     def __init__(self,
