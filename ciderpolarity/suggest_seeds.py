@@ -73,7 +73,8 @@ def custom_seeds(SS, pos_initial, neg_initial, n=10, return_all=False, sentiment
     try:
         SS.load('PPMI')
     except:
-        SS.gen_only()
+        print('Preliminary running of CIDER to generate PPMI matrix for seed word suggestion')
+        SS.fit()
         
     gdict = SS.load('dict')
     token2id = gdict.token2id    
