@@ -44,6 +44,7 @@ cdr = CIDER(input_data, output_folder)
 results = cdr.fit_transform()
 ```
 
+
 This trains the model, creating a customised VADER classifier, before classifying the provided input using the model. A ficticious example output is as follows:
 
 ```python
