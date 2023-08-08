@@ -111,7 +111,7 @@ def run_lowdim_original(ppmi,SS, dim=300):
     return u,s, v
 
 from sklearn.decomposition import NMF, KernelPCA
-from sklearn.manifold import SpectralEmbedding
+from sklearn.manifold import SpectralEmbedding, LocallyLinearEmbedding
 def run_lowdim(ppmi,SS, dim=300):
     
     #original
@@ -144,7 +144,8 @@ def run_lowdim(ppmi,SS, dim=300):
         ).fit_transform(ppmi)
     
     #alt4 (needs dense arrays!)
-    #u = LocallyLinearEmbedding(n_components=dim).fit_transform(ppmi.toarray())
+    if SS.EMBEDDING == 'LLE':
+        u = LocallyLinearEmbedding(n_components=dim).fit_transform(ppmi.toarray())
 
     #alt5
     if SS.EMBEDDING == 'SPECTRAL':

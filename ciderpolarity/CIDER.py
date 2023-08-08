@@ -27,7 +27,8 @@ class CIDER:
                  iterations=100,
                  verbose=True,
                  no_below=100,
-                 keep=[]):
+                 keep=[],
+                 embedding = 'SVD'):
         '''
         Create domain specific lexicons.
 
@@ -61,6 +62,7 @@ class CIDER:
         verbose - BOOL - display progress
         no_below - INT - exclude words that occur less frequently than this
         keep - LIST/None - List of words to prevent being excluded
+        embedding - STR - Choose embedding approach from 'SVD', 'SVD_MUL', 'NMF', 'KPCA', 'LLE', 'SPECTRAL'
         '''
 
         if type(fileinput) == str:
@@ -91,6 +93,7 @@ class CIDER:
         self.NN = 25
         self.LINES = 0
         self.MAX = max_polarities_returned
+        self.EMBEDDING = embedding
 
         ## Save Locations
         if not os.path.isdir(output):
