@@ -141,7 +141,7 @@ class CIDER:
     
 
 
-    def fit(self, full_run=True, remove_neutral=True):
+    def fit(self, full_run=True, remove_neutral=True, just_run = False):
         '''
         Train CIDER and fit a VADER model on the outputs
 
@@ -160,10 +160,12 @@ class CIDER:
                 warnings.warn(f"\nThe size of the dataset ({self.LINES}) is relatively small. " 
                               "Consider reducing the 'no_below' parameter to improve returned " 
                               "polarities and to avoid potential errors.", stacklevel=2)
-
-            create_embeddings.embed_text(self)
+		
+            if not just_run:
+                create_embeddings.embed_text(self)
 
             ## Running Bootstrapping
+            
             run_bootstrapping.propogate_labels(self)
         
         ## Loading Polarities

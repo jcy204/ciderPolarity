@@ -102,7 +102,7 @@ def gen_PPMI(sparse_matrix, SS, cds = True):
 
 
 
-def run_lowdim(ppmi,SS, dim=300):
+def run_lowdim_original(ppmi,SS, dim=300):
     try:
         u, s, v = svds(ppmi,k=dim, maxiter = 5, solver ='arpack', random_state=0)
     except:
@@ -110,6 +110,46 @@ def run_lowdim(ppmi,SS, dim=300):
         if SS.VERBOSE: print('RandomSVD')
     return u,s, v
 
+from sklearn.decomposition import NMF, KernelPCA
+from sklearn.manifold import SpectralEmbedding
+def run_lowdim(ppmi,SS, dim=300):
+    
+    #original
+    s,v = 0, 0
+    if SS.EMBEDDING == 'SVD':
+        try:
+            u, s, v = svds(ppmi,k=dim, maxiter = 5, solver ='arpack', random_state=0)
+        except:
+            u, s, v = randomized_svd(ppmi, n_components=dim, n_iter=5,random_state=None)
+            if SS.VERBOSE: print('RandomSVD')
+    #alt1 
+    if SS.EMBEDDING == 'SVD_MUL':
+        try:
+            u, s, v = svds(ppmi,k=dim, maxiter = 5, solver ='arpack', random_state=0)
+        except:
+            u, s, v = randomized_svd(ppmi, n_components=dim, n_iter=5,random_state=None)
+            if SS.VERBOSE: print('RandomSVD')
+        u = np.matmul(u,np.diag(s))
 
+    #alt2
+    if SS.EMBEDDING == 'NMF':
+        u = NMF(n_components=dim,tol=0.01).fit_transform(ppmi)
+    
+    #alt3
+    if SS.EMBEDDING == 'KPCA':
+        u = KernelPCA(
+        n_components=dim,
+        kernel="rbf",
+        random_state=42,
+        ).fit_transform(ppmi)
+    
+    #alt4 (needs dense arrays!)
+    #u = LocallyLinearEmbedding(n_components=dim).fit_transform(ppmi.toarray())
+
+    #alt5
+    if SS.EMBEDDING == 'SPECTRAL':
+        u = SpectralEmbedding(n_components=dim).fit_transform(ppmi)
+    
+    return u,s, v
     
 
