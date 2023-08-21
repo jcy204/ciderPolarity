@@ -1,0 +1,3 @@
+[submodule "ciderpolarity/NvaderSentiment"]
+	path = ciderpolarity/NvaderSentiment
+	url = https://github.com/rudyarthur/NvaderSentiment.git
