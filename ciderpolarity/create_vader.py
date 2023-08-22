@@ -25,6 +25,7 @@ def modify_vader(SS,remove_neutral=True):
         remove = []
     return make_VADER_custom(df_pos, df_neg, remove)
 
+
     
 def make_VADER_custom(positive, negative, remove):
     SIA_Custom = SentimentIntensityAnalyzer()
