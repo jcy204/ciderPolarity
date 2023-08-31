@@ -56,11 +56,14 @@ def filter_df(df,neu_thresh, pol_thresh):
     
     df_k = df[~df.index.isin(df_remove)].copy()
 
-    df_k['metric'] = df_k.pos_prox.rank(**r_arg) - df_k.neg_prox.rank(**r_arg)
+    df_k['metric'] = (df_k.pos_prox - df_k.neg_prox).rank(**r_arg)
     df_k['metric'] = (df_k.metric-df_k.metric.min())/(df_k.metric.max()-df_k.metric.min())
 
-    df_pos = df_k[df_k.metric > 0.5+pol_thresh/2].copy()
-    df_neg = df_k[df_k.metric < 0.5-pol_thresh/2].copy()
+    df_pos = df_k[df_k.metric > df_k.metric.mean()].copy()
+    df_neg = df_k[df_k.metric < df_k.metric.mean()].copy()
+
+    df_pos = df_pos.sort_values('metric').tail(int(len(df_pos)*pol_thresh))
+    df_neg = df_neg.sort_values('metric').head(int(len(df_neg)*pol_thresh))
 
     return df_pos, df_neg, df_remove
 
