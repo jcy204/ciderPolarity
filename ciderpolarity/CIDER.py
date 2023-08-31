@@ -21,13 +21,15 @@ class CIDER:
                  pos_seeds=None,
                  neg_seeds=None,
                  predefined_seeds='derived_twitter',
+                 sentiment = True,
                  max_polarities_returned=5000,
                  preprocessing = 'default',
                  stopwords='default',
                  iterations=100,
                  verbose=True,
                  no_below=100,
-                 keep=[]):
+                 keep=[],
+                 skip_negation = True):
         '''
         Create domain specific lexicons.
 
@@ -73,22 +75,23 @@ class CIDER:
         self.STOPWORDS = stopwords
         self.VERBOSE = verbose
         self.PREPROCESSING = preprocessing
-
+        self.SKIP_NEGATION = skip_negation
 
         ## Seed Words
         self.POS_SEEDS = pos_seeds
         self.NEG_SEEDS = neg_seeds
         self.PREDEFINED_SEEDS = predefined_seeds
+        self.SENTIMENT = sentiment
         self.SEEDS = set_seeds(self)
 
         ## Filtering Thresholds
         if keep == None: keep = []
         self.KEEP = sorted(set(self.clean_text(' '.join(keep))))
-        self.NO_ABOVE_1 = 0.5
-        self.NO_ABOVE_2 = 0.1
+        self.NO_ABOVE_1 = 0.3
+        self.NO_ABOVE_2 = 0.4
         self.NO_BELOW = no_below
         self.STATE = 0
-        self.NN = 25
+        self.NN = 20
         self.LINES = 0
         self.MAX = max_polarities_returned
 
@@ -114,9 +117,8 @@ class CIDER:
         self.scale = True
 
         ## filtering polarities parameters. These can be adjusted.
-        self.NEU_THRESH=0.45,
-        self.VAR_UPPER=0.9,
-        self.VAR_LOWER=0.5
+        self.NEU_THRESH=0.55
+        self.POL_THRESH=0.68
         
         ## Version
         try:
@@ -141,7 +143,7 @@ class CIDER:
     
 
 
-    def fit(self, full_run=True, remove_neutral=True):
+    def fit(self, full_run=True, remove_neutral=True, run_only=False):
         '''
         Train CIDER and fit a VADER model on the outputs
 
@@ -162,7 +164,7 @@ class CIDER:
                               "polarities and to avoid potential errors.", stacklevel=2)
 
             create_embeddings.embed_text(self)
-
+        if full_run | run_only:
             ## Running Bootstrapping
             run_bootstrapping.propogate_labels(self)
         
@@ -217,7 +219,9 @@ class CIDER:
                                 classifies as neutral
         '''
         self.classify = create_vader.modify_vader(self,remove_neutral)
-        
+
+    def intensity(self,text):
+        return create_vader.intensity(self.classify,text)
 
     def clean_text(self,text):
         '''
