@@ -2,10 +2,11 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer, SentiText,
 import json
 import numpy as np
 from .utils_funcs import text_iterate
-
+import math
 
 SIA = SentimentIntensityAnalyzer()
 r_arg = {'pct':True,'method':'dense'}
+
 
 ################################ CHECK THESE THRESHOLDS ####################################
 def modify_vader(CDR,remove_neutral=True):
@@ -13,139 +14,104 @@ def modify_vader(CDR,remove_neutral=True):
     remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
                             classifies as neutral   
     '''
-
     try: 
-        df = CDR.polarities
+        CDR.polarities
     except:
-        CDR.create_df()
-        df = CDR.polarities
+        CDR.create_df()    
+        
+    return Custom_VADER(CDR, remove_neutral)
+
     
-    ## Filter DF
-    df_pos, df_neg, remove = filter_df(df, CDR.NEU_THRESH, CDR.POL_THRESH)
-    if remove_neutral == False:
-        remove = []
-    return make_VADER_custom(df_pos, df_neg, remove, CDR.SENTIMENT)
 
 
     
-def make_VADER_custom(positive, negative, remove, sentiment):
-    SIA_Custom = SentimentIntensityAnalyzer()
+######## Rewritten VADER Functions
+class Custom_VADER(SentimentIntensityAnalyzer):
     
-    for i in remove: 
-        try: del SIA_Custom.lexicon[i]
-        except: pass
-    if sentiment == False:
-        SIA_Custom.lexicon = {}
+    def __init__(self, cdr, remove_neutral):
+        super().__init__()
+        self.REMOVE_NEUTRAL = remove_neutral
+        self.edit_lexicon(cdr)
 
-    for i in positive.itertuples():
-        SIA_Custom.lexicon[i.Index] = i.polarity
-        if i.Index in SIA_Custom.emojis:
-            del SIA_Custom.emojis[i.Index]
+    def edit_lexicon(self, cdr):
+        df = cdr.polarities.copy()
+        
+        ## Filtering DF
+        df_remove = df[ (df.pos_prox.rank(**r_arg) < cdr.NEU_THRESH) 
+                      & (df.neg_prox.rank(**r_arg) < cdr.NEU_THRESH)].index.tolist()
 
-    for i in negative.itertuples():
-        SIA_Custom.lexicon[i.Index] = i.polarity
-        if i.Index in SIA_Custom.emojis:
-            del SIA_Custom.emojis[i.Index]
+        df_k = df[~df.index.isin(df_remove)].copy()
+
+        df_k['metric'] = (df_k.pos_prox - df_k.neg_prox)#.rank(**r_arg)
+        
+        keep = int(len(df_k)*cdr.POL_THRESH/2)
+        df_pos = df_k.sort_values('metric').tail(keep)
+        df_neg = df_k.sort_values('metric').head(keep)
+
+        ## editing lexicon
+        if self.REMOVE_NEUTRAL == False:
+            df_remove = []
+    
+        for i in df_remove: 
+            try: del self.lexicon[i]
+            except: pass
             
-    return SIA_Custom
+        if cdr.SENTIMENT == False:
+            self.lexicon = {}
 
-def filter_df(df,neu_thresh, pol_thresh):
+        for i in df_pos.itertuples():
+            self.lexicon[i.Index] = i.polarity
+            if i.Index in self.emojis:
+                del self.emojis[i.Index]
 
-    df_remove = df[ (df.pos_prox.rank(**r_arg) < neu_thresh) 
-                     & (df.neg_prox.rank(**r_arg) < neu_thresh)].index.tolist()
+        for i in df_neg.itertuples():
+            self.lexicon[i.Index] = i.polarity
+            if i.Index in self.emojis:
+                del self.emojis[i.Index]
     
-    df_k = df[~df.index.isin(df_remove)].copy()
-
-    df_k['metric'] = (df_k.pos_prox - df_k.neg_prox).rank(**r_arg)
-    df_k['metric'] = (df_k.metric-df_k.metric.min())/(df_k.metric.max()-df_k.metric.min())
-
-    df_pos = df_k[df_k.metric > df_k.metric.mean()].copy()
-    df_neg = df_k[df_k.metric < df_k.metric.mean()].copy()
-
-    df_pos = df_pos.sort_values('metric').tail(int(len(df_pos)*pol_thresh))
-    df_neg = df_neg.sort_values('metric').head(int(len(df_neg)*pol_thresh))
-
-    return df_pos, df_neg, df_remove
-
-
-def apply_vader(self,save_outputs,return_outputs):
-    if not self.classify:
-        raise ValueError(f"""Apply model.fit() before model.transform()""")
     
-    results = []
-    
-    if save_outputs:
-        if self.VERBOSE: print(f"Saving Classified Text to: {self.paths['output_pols']}")
-        with open(self.paths['output_pols'],'w') as newfile:
-            for row in text_iterate(self, show=self.VERBOSE):
-                result = [row, self.classify.polarity_scores(row)]
-                output = json.dumps({'body':result[0],'polarity':result[1]})
-                newfile.write(output+'\n')
-                
-                if return_outputs:
-                    results.append(result)
+    def score_valence(self, sentiments, text):
 
-    elif return_outputs:
-        if self.VERBOSE: print('Returning Classified Text')
-        for row in text_iterate(self, show=self.VERBOSE):
-            result = [row, self.classify.polarity_scores(row)]
-            results.append(result)
+        if sentiments:
+            sum_s = float(sum(sentiments))
+            # compute and add emphasis from punctuation in text
+            punct_emph_amplifier = self._punctuation_emphasis(text)
+            if sum_s > 0:
+                sum_s += punct_emph_amplifier
+            elif sum_s < 0:
+                sum_s -= punct_emph_amplifier
 
-    if return_outputs:
-        return results
-    
+            compound = normalize(sum_s)
 
-def intensity(cdr, text):
-    """
-    Return a float for sentiment strength based on the input text.
-    Positive values are positive valence, negative value are negative
-    valence.
-    """
-    
+            # compute intensity from text
+            sum_c = float(sum(np.abs(sentiments)))
+            sum_c += punct_emph_amplifier
+            intensity = normalize(sum_c)
 
-    # convert emojis to their textual descriptions
-    text_no_emoji = ""
-    prev_space = True
-    for chr in text:
-        if chr in cdr.emojis:
-            # get the textual description
-            description = cdr.emojis[chr]
-            if not prev_space:
-                text_no_emoji += ' '
-            text_no_emoji += description
-            prev_space = False
+            # discriminate between positive, negative and neutral sentiment scores
+            pos_sum, neg_sum, neu_count = self._sift_sentiment_scores(sentiments)
+
+            if pos_sum > math.fabs(neg_sum):
+                pos_sum += punct_emph_amplifier
+            elif pos_sum < math.fabs(neg_sum):
+                neg_sum -= punct_emph_amplifier
+
+            total = pos_sum + math.fabs(neg_sum) + neu_count
+            pos = math.fabs(pos_sum / total)
+            neg = math.fabs(neg_sum / total)
+            neu = math.fabs(neu_count / total)
+
         else:
-            text_no_emoji += chr
-            prev_space = chr == ' '
-    text = text_no_emoji.strip()
+            compound = 0.0
+            pos = 0.0
+            neg = 0.0
+            neu = 0.0
 
-    sentitext = SentiText(text)
+        sentiment_dict = \
+            {"neg": round(neg, 3),
+             "neu": round(neu, 3),
+             "pos": round(pos, 3),
+             "compound": round(compound, 4),
+             "intensity": round(intensity,4)}
 
-    sentiments = []
-    words_and_emoticons = sentitext.words_and_emoticons
-    for i, item in enumerate(words_and_emoticons):
-        valence = 0
-        # check for vader_lexicon words that may be used as modifiers or negations
-        if item.lower() in BOOSTER_DICT:
-            sentiments.append(valence)
-            continue
-        if (i < len(words_and_emoticons) - 1 and item.lower() == "kind" and
-                words_and_emoticons[i + 1].lower() == "of"):
-            sentiments.append(valence)
-            continue
-
-        sentiments = cdr.sentiment_valence(valence, sentitext, item, i, sentiments)
-
-    sentiments = cdr._but_check(words_and_emoticons, sentiments)
-    if sentiments:
-        sum_s = float(sum(np.abs(sentiments)))
-        punct_emph_amplifier = SIA._punctuation_emphasis(text)
-        if sum_s > 0:
-            sum_s += punct_emph_amplifier
-        elif sum_s < 0:
-            sum_s -= punct_emph_amplifier
-
-
-        compound = normalize(sum_s)
-    
-    return compound
+        return sentiment_dict

@@ -26,9 +26,21 @@ NEGATIVE_FINANCE = ["negligent","loss","volatile","wrong","losses","damages","ba
 POSITIVE_TWEET = [ "love","loved","loves","awesome","nice","amazing","best","fantastic","correct","happy"]
 NEGATIVE_TWEET = [ "hate","hated","hates","terrible","nasty","awful","worst","horrible","wrong","sad"]
 
-MALE = ["man", "male", "boy", "gentleman", "mr", "masculine", "dad", "father", "brother", "son"]
-FEMALE = ["female", "woman", "girl", "lady", "mom", "mum", "sister", "mother", "feminine", "daughter", "ms", "mrs", "miss"]
+MALE_old = ["man", "male", "boy", "gentleman", "mr", "masculine", "dad", "father", "brother", "son"]
+FEMALE_old = ["female", "woman", "girl", "lady", "mom", "mum", "sister", "mother", "feminine", "daughter", "ms", "mrs", "miss"]
 
+MALE = [
+    'boy', 'boys', 'brother', 'brothers', 'dad', 'dads', 'father', 'fathers',
+    'gentleman', 'gentlemen', 'male', 'males', 'man', 'men', 'masculine',
+    'mr', 'son', 'sons', 'he', 'him', 'hes', 'his', 'himself'
+]
+
+FEMALE = [
+    'daughter', 'daughters', 'female', 'females', 'feminine',
+    'girl', 'girls', 'lady', 'ladies', 'mom', 'moms',
+    'mother', 'mothers', 'mrs', 'ms', 'mum', 'mums', 'sister', 'sisters',
+    'woman', 'women', 'she', 'shes', 'her', 'hers', 'herself'
+]
 POSITIVE_HIST = [ "good","lovely","excellent","fortunate","pleasant","delightful","perfect","loved","love","happy"]
 NEGATIVE_HIST = [ "bad","horrible","poor","unfortunate","unpleasant","disgusting","evil","hated","hate","unhappy"]
 
@@ -43,24 +55,27 @@ seed_dict = {'derived_twitter': [POSITIVE_DERIVED_TWITTER, NEGATIVE_DERIVED_TWIT
 
 
     
-def set_seeds(SS):
+def set_seeds(CDR):
     'returns seed options, or filters given seeds'
     
     try:
-        if SS.POS_SEEDS:
-            seeds = [SS.POS_SEEDS, SS.NEG_SEEDS]
-        elif SS.PREDEFINED_SEEDS:
-            seeds = seed_dict[SS.PREDEFINED_SEEDS.lower()]
+        if CDR.POS_SEEDS:
+            seeds = [CDR.POS_SEEDS, CDR.NEG_SEEDS]
+        elif CDR.PREDEFINED_SEEDS:
+            seeds = seed_dict[CDR.PREDEFINED_SEEDS.lower()]
             
 
         if type(seeds[0]) == list:
-            pos_seeds = [SS.clean_text(i)[0] for i in sorted(set(seeds[0]))]
-            neg_seeds = [SS.clean_text(i)[0] for i in sorted(set(seeds[1]))]
+            CDR.STOPWORDS = set([i for i in CDR.STOPWORDS if i not in sum(seeds,[])])
+            pos_seeds = [CDR.clean_text(i)[0] for i in sorted(set(seeds[0]))]
+            neg_seeds = [CDR.clean_text(i)[0] for i in sorted(set(seeds[1]))]
             return [pos_seeds,neg_seeds]
 
         if type(seeds[0]) == dict:
-            pos_seeds = {SS.clean_text(i)[0]: seeds[0][i] for i in sorted(seeds[0])}
-            neg_seeds = {SS.clean_text(i)[0]: seeds[1][i] for i in sorted(seeds[1])}
+            seeds = list(seeds[0].keys()) + list(seeds[1].keys())
+            CDR.STOPWORDS = set([i for i in CDR.STOPWORDS if i not in seeds])
+            pos_seeds = {CDR.clean_text(i)[0]: seeds[0][i] for i in sorted(seeds[0])}
+            neg_seeds = {CDR.clean_text(i)[0]: seeds[1][i] for i in sorted(seeds[1])}
             return [pos_seeds,neg_seeds]
     except:
         valid_options = ', '.join(list(seed_dict))
@@ -69,16 +84,16 @@ def set_seeds(SS):
 
 
 
-def custom_seeds(SS, pos_initial, neg_initial, n=10, return_all=False, sentiment = True):
+def custom_seeds(CDR, pos_initial, neg_initial, n=10, return_all=False, sentiment = True):
     try:
-        SS.load('PPMI')
+        CDR.load('PPMI')
     except:
         print('Preliminary running of CIDER to generate PPMI matrix for seed word suggestion')
-        SS.fit()
+        CDR.fit()
         
-    gdict = SS.load('dict')
+    gdict = CDR.load('dict')
     token2id = gdict.token2id    
-    ppmi = SS.load('ppmi')
+    ppmi = CDR.load('ppmi')
     
     pos_loc = [token2id[i] for i in pos_initial if i in token2id]
     neg_loc = [token2id[i] for i in neg_initial if i in token2id]

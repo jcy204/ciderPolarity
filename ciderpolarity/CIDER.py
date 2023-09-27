@@ -5,7 +5,10 @@ from . import create_embeddings
 from . import run_bootstrapping
 from . import create_vader
 from . import utils_funcs
-import importlib.metadata
+try:
+    import importlib.metadata as metadata
+except:
+    from importlib_metadata import metadata
 import warnings
 import pickle
 import os
@@ -31,7 +34,7 @@ class CIDER:
                  keep=[],
                  skip_negation = True):
         '''
-        Create domain specific lexicons.
+        Creates domain specific lexicons.
 
         The code can be run as follows:
             cdr = CIDER(fileinput,output)
@@ -118,12 +121,14 @@ class CIDER:
 
         ## filtering polarities parameters. These can be adjusted.
         self.NEU_THRESH=0.55
-        self.POL_THRESH=0.68
+        self.POL_THRESH=0.13
+        if not sentiment:
+            self.POL_THRESH=0.3
         
         ## Version
         try:
-            self.__version__ = importlib.metadata.version('ciderpolarity')
-        except importlib.metadata.PackageNotFoundError:
+            self.__version__ = metadata.version('ciderpolarity')
+        except:
             self.__version__ = 'unknown-version' 
 
     def generate_seeds(self, pos_initial, neg_initial, n=10, return_all=False, sentiment=True):
@@ -220,8 +225,6 @@ class CIDER:
         '''
         self.classify = create_vader.modify_vader(self,remove_neutral)
 
-    def intensity(self,text):
-        return create_vader.intensity(self.classify,text)
 
     def clean_text(self,text):
         '''
@@ -259,3 +262,23 @@ class CIDER:
             return seed_dict[input.lower()]
         else:
             return self.SEEDS
+
+
+
+    def word_strength(self, word, top = 10, association = 'ppmi'):
+        '''
+        Returns n words strongly associated with the input word. Select between 'ppmi' or 'cooc' for association.
+        '''
+        gdict = self.load('dict')
+        word_loc = gdict.token2id[word]
+        id2token = {gdict.token2id[i]: i for i in gdict.token2id}
+        
+        data = self.load(association)[word_loc].toarray()[0]
+        important = [i for i in data.argsort()[::-1] if i != word_loc]
+        
+        important = important[:top]
+
+        return [id2token[i] for i in important]
+    
+    
+    
