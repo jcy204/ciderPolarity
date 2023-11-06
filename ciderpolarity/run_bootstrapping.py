@@ -17,7 +17,7 @@ def propogate_labels(CDR):
     keeptokens = list(pos_seeds)+ list(neg_seeds) + keep
 
     ### Filtering gdict
-    gdict = CDR.load(fname = CDR.OUTPUT + 'dict.pkl')
+    gdict = CDR._load(fname = CDR.OUTPUT + 'dict.pkl')
     vocab = gdict.token2id
     gdict.filter_extremes(no_above=CDR.NO_ABOVE_2, no_below=CDR.NO_BELOW, keep_tokens = keeptokens)
 

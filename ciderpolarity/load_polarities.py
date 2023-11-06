@@ -32,7 +32,7 @@ def make_df(CDR):
     df['polarity'] = df.pos.apply(np.array)/(df.pos.apply(np.array)+df.neg.apply(np.array))
         
     ## Word Counts
-    index = CDR.load( fname = CDR.OUTPUT + 'dict.pkl')
+    index = CDR._load( fname = CDR.OUTPUT + 'dict.pkl')
     word_freq = Counter({i[0]:i[1] for i in index.most_common()})
     df['freq'] = df.index.map(word_freq)     
         

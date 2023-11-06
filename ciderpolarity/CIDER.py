@@ -12,7 +12,8 @@ except:
 import warnings
 import pickle
 import os
-
+from multiprocessing import Pool
+from functools import partial
 
 
 
@@ -148,7 +149,7 @@ class CIDER:
     
 
 
-    def fit(self, full_run=True, remove_neutral=True, run_only=False):
+    def fit(self, full_run=True, remove_neutral=True, run_only=False, gen_only=False):
         '''
         Train CIDER and fit a VADER model on the outputs
 
@@ -169,13 +170,15 @@ class CIDER:
                               "polarities and to avoid potential errors.", stacklevel=2)
 
             create_embeddings.embed_text(self)
+            if gen_only:
+                return
         if full_run | run_only:
             ## Running Bootstrapping
             run_bootstrapping.propogate_labels(self)
-        
+
         ## Loading Polarities
-        self.create_df()
-        self.train_VADER(remove_neutral)
+        self._create_df()
+        self._train_VADER(remove_neutral)
 
 
 
@@ -209,13 +212,13 @@ class CIDER:
     
 
 
-    def create_df(self):
+    def _create_df(self):
         'returns polarities only'
         self.polarities = load_polarities.make_df(self)
 
 
 
-    def train_VADER(self,remove_neutral=True):
+    def _train_VADER(self,remove_neutral=True):
         '''
         trains VADER only        
         Parameters
@@ -223,9 +226,15 @@ class CIDER:
         remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
                                 classifies as neutral
         '''
-        self.classify = create_vader.modify_vader(self,remove_neutral)
+        self.classifier = create_vader.modify_vader(self,remove_neutral)
 
+    def classify(self, text):
+        return self.classifier.polarity_scores(text)
 
+    def batch_classify(self,texts):
+        with Pool() as pool:
+            return pool.map(self.classify, texts)
+            
     def clean_text(self,text):
         '''
         cleans and tokenises the text
@@ -237,14 +246,14 @@ class CIDER:
         if callable(self.PREPROCESSING):
             return self.PREPROCESSING(text)
 
-    def save(self, fname, var):
+    def _save(self, fname, var):
         'Function used to pickle (save) variables'
         with open(fname, "wb") as f:
             pickle.dump(var, f)
 
 
 
-    def load(self, fname):
+    def _load(self, fname):
         'Loads pickled (saved) variables'
         if fname.lower() in self.paths:
             fname = self.paths[fname.lower()]
@@ -254,7 +263,7 @@ class CIDER:
 
 
     
-    def get_seeds(self,input = None):
+    def _get_seeds(self,input = None):
         '''
         Either returns set seeds, or if input != None, the corresponding seed set for that input is returned 
         '''
@@ -269,11 +278,11 @@ class CIDER:
         '''
         Returns n words strongly associated with the input word. Select between 'ppmi' or 'cooc' for association.
         '''
-        gdict = self.load('dict')
+        gdict = self._load('dict')
         word_loc = gdict.token2id[word]
         id2token = {gdict.token2id[i]: i for i in gdict.token2id}
         
-        data = self.load(association)[word_loc].toarray()[0]
+        data = self._load(association)[word_loc].toarray()[0]
         important = [i for i in data.argsort()[::-1] if i != word_loc]
         
         important = important[:top]

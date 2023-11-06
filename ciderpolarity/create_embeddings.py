@@ -40,14 +40,14 @@ def embed_text(CDR):
     if CDR.VERBOSE: print('Running Cooc')
     cooc = gen_cooc(gdict, CDR)
     
-    CDR.save( fname = CDR.OUTPUT + 'cooc.pkl', var = cooc)
+    CDR._save( fname = CDR.OUTPUT + 'cooc.pkl', var = cooc)
 
     ### PPMI   
     if CDR.VERBOSE: print('Running PPMI')
     ppmi = gen_PPMI(cooc,CDR)
 
-    CDR.save( fname = CDR.OUTPUT + 'ppmi.pkl', var = ppmi)
-    CDR.save( fname = CDR.OUTPUT + 'ppmi_index.pkl', var = gdict.token2id)
+    CDR._save( fname = CDR.OUTPUT + 'ppmi.pkl', var = ppmi)
+    CDR._save( fname = CDR.OUTPUT + 'ppmi_index.pkl', var = gdict.token2id)
 
     ### SVD
     if CDR.VERBOSE: print('Making Low Dim')
@@ -58,7 +58,7 @@ def embed_text(CDR):
     np.save(CDR.OUTPUT + "vec-v.npy", v)
     np.save(CDR.OUTPUT + "vec-s.npy", s)
     
-    CDR.save( fname = CDR.OUTPUT + 'dict.pkl', var = gdict)
+    CDR._save( fname = CDR.OUTPUT + 'dict.pkl', var = gdict)
 
 def gen_cooc(gdict,CDR, tfidf = False):
     bow_corpus = []
