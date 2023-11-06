@@ -86,14 +86,14 @@ def set_seeds(CDR):
 
 def custom_seeds(CDR, pos_initial, neg_initial, n=10, return_all=False, sentiment = True):
     try:
-        CDR.load('PPMI')
+        CDR._load('PPMI')
     except:
         print('Preliminary running of CIDER to generate PPMI matrix for seed word suggestion')
         CDR.fit()
         
-    gdict = CDR.load('dict')
+    gdict = CDR._load('dict')
     token2id = gdict.token2id    
-    ppmi = CDR.load('ppmi')
+    ppmi = CDR._load('ppmi')
     
     pos_loc = [token2id[i] for i in pos_initial if i in token2id]
     neg_loc = [token2id[i] for i in neg_initial if i in token2id]
