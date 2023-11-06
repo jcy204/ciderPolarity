@@ -9,26 +9,26 @@ except:
 import json
 
 
-def propogate_labels(SS):
+def propagate_labels(CDR):
 
     ### Loading words to keep
-    keep = list(SS.KEEP)
-    pos_seeds, neg_seeds = SS.SEEDS
+    keep = list(CDR.KEEP)
+    pos_seeds, neg_seeds = CDR.SEEDS
     keeptokens = list(pos_seeds)+ list(neg_seeds) + keep
 
     ### Filtering gdict
-    gdict = SS.load(fname = SS.OUTPUT + 'dict.pkl')
+    gdict = CDR._load(fname = CDR.OUTPUT + 'dict.pkl')
     vocab = gdict.token2id
-    gdict.filter_extremes(no_above=SS.NO_ABOVE_2, no_below=SS.NO_BELOW, keep_tokens = keeptokens)
+    gdict.filter_extremes(no_above=CDR.NO_ABOVE_2, no_below=CDR.NO_BELOW, keep_tokens = keeptokens)
 
-    ## Filtering out SS.MAX tokens
+    ## Filtering out CDR.MAX tokens
     keeptoken_ids = [gdict.token2id[i] for i in keeptokens if i in gdict.token2id] 
-    to_keep_init = [i[0] for i in Counter(gdict.dfs).most_common(SS.MAX)] # At most SS.MAX words
-    to_keep = list(dict.fromkeys(keeptoken_ids+ to_keep_init))[:SS.MAX]
+    to_keep_init = [i[0] for i in Counter(gdict.dfs).most_common(CDR.MAX)] # At most CDR.MAX words
+    to_keep = list(dict.fromkeys(keeptoken_ids+ to_keep_init))[:CDR.MAX]
     to_keep = sorted(to_keep, key=lambda w: gdict.dfs[w], reverse=True)
 
     gdict.filter_tokens(good_ids=to_keep) # Remove Bad Tokens
-    u = np.load(SS.OUTPUT + "vec-u.npy")
+    u = np.load(CDR.OUTPUT + "vec-u.npy")
 
     sub_vec_m = preprocessing.normalize(u, copy=False)
 
@@ -38,15 +38,15 @@ def propogate_labels(SS):
     keep_indices = [vocab[word] for word in word_list]
     sub_vec_m = sub_vec_m[keep_indices, :]
 
-    params = {'POLARITY_OUTPUT': SS.POLARITY_OUTPUT,
-              'ITERATIONS': SS.ITERATIONS,
-              'VERBOSE': SS.VERBOSE,
-              'STATE': SS.STATE,
-              'SEEDS': SS.SEEDS}
+    params = {'POLARITY_OUTPUT': CDR.POLARITY_OUTPUT,
+              'ITERATIONS': CDR.ITERATIONS,
+              'VERBOSE': CDR.VERBOSE,
+              'STATE': CDR.STATE,
+              'SEEDS': CDR.SEEDS}
 
 
     ### Transition Matrix
-    trans_M = transition_matrix(sub_vec_m, SS.NN)
+    trans_M = transition_matrix(sub_vec_m, CDR.NN)
 
     polarity_bootstrap(trans_M, word_list, params)
 

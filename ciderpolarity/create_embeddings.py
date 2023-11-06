@@ -10,64 +10,70 @@ try:
 except:
     from tqdm import tqdm
 from .utils_funcs import text_iterate
+from .utils_funcs import NEGATE
 
 
 
 
-def embed_text(SS):
+def embed_text(CDR):
 
     ### Load Tweets
     gdict = Dictionary()
-    for row in text_iterate(SS, show=SS.VERBOSE):
-        
-        processed_comment = SS.clean_text(row)
+    for row in text_iterate(CDR, show=CDR.VERBOSE):
+        ### Skips rows with negation term
+        if CDR.SKIP_NEGATION:
+            if any(i in NEGATE for i in row.lower().split()):
+                continue
+
+        processed_comment = CDR.clean_text(row)
         gdict.add_documents([processed_comment],prune_at = None)
 
     ### Filter Dictionary
-    pos_seeds, neg_seeds = SS.SEEDS
-    keep = list(SS.KEEP)
+    pos_seeds, neg_seeds = CDR.SEEDS
+    keep = list(CDR.KEEP)
 
     keeptokens = list(pos_seeds)+ list(neg_seeds) + keep
-    gdict.filter_extremes(no_above=SS.NO_ABOVE_1, no_below=SS.NO_BELOW, keep_tokens = keeptokens)
+    gdict.filter_extremes(no_above=CDR.NO_ABOVE_1, no_below=CDR.NO_BELOW, keep_tokens = keeptokens)
     gdict.compactify()
 
     ### Coocurrence
-    if SS.VERBOSE: print('Running Cooc')
-    cooc = gen_cooc(gdict, SS)
+    if CDR.VERBOSE: print('Running Cooc')
+    cooc = gen_cooc(gdict, CDR)
     
-    SS.save( fname = SS.OUTPUT + 'cooc.pkl', var = cooc)
+    CDR._save( fname = CDR.OUTPUT + 'cooc.pkl', var = cooc)
 
     ### PPMI   
-    if SS.VERBOSE: print('Running PPMI')
-    ppmi = gen_PPMI(cooc,SS)
+    if CDR.VERBOSE: print('Running PPMI')
+    ppmi = gen_PPMI(cooc,CDR)
 
-    SS.save( fname = SS.OUTPUT + 'ppmi.pkl', var = ppmi)
-    SS.save( fname = SS.OUTPUT + 'ppmi_index.pkl', var = gdict.token2id)
+    CDR._save( fname = CDR.OUTPUT + 'ppmi.pkl', var = ppmi)
+    CDR._save( fname = CDR.OUTPUT + 'ppmi_index.pkl', var = gdict.token2id)
 
     ### SVD
-    if SS.VERBOSE: print('Making Low Dim')
-    u,s, v = run_lowdim(ppmi,SS)
+    if CDR.VERBOSE: print('Making Low Dim')
+    u,s, v = run_lowdim(ppmi,CDR)
 
 
-    np.save(SS.OUTPUT + "vec-u.npy", u)
-    np.save(SS.OUTPUT + "vec-v.npy", v)
-    np.save(SS.OUTPUT + "vec-s.npy", s)
+    np.save(CDR.OUTPUT + "vec-u.npy", u)
+    np.save(CDR.OUTPUT + "vec-v.npy", v)
+    np.save(CDR.OUTPUT + "vec-s.npy", s)
     
-    SS.save( fname = SS.OUTPUT + 'dict.pkl', var = gdict)
+    CDR._save( fname = CDR.OUTPUT + 'dict.pkl', var = gdict)
 
-def gen_cooc(gdict,SS, tfidf = False):
+def gen_cooc(gdict,CDR):
     bow_corpus = []
     dup_corpus = Counter()
 
 
-    for row in text_iterate(SS, show=SS.VERBOSE):
-        processed_comment = SS.clean_text(row)
+    for row in text_iterate(CDR, show=CDR.VERBOSE):
+        if CDR.SKIP_NEGATION:
+            if any(i in NEGATE for i in row.lower().split()):
+                continue
+
+        processed_comment = CDR.clean_text(row)
         mat = gdict.doc2bow(processed_comment)
         bow_corpus += [mat]
         dup_corpus.update(dict(mat)) # To subtract diagonal 
-
-    if tfidf:
-        return bow_corpus
         
     term_doc_mat = corpus2csc(bow_corpus)
     cooc = np.dot(term_doc_mat, term_doc_mat.T)
@@ -76,7 +82,7 @@ def gen_cooc(gdict,SS, tfidf = False):
     cooc -= diag
     return cooc
 
-def gen_PPMI(sparse_matrix, SS, cds = True):
+def gen_PPMI(sparse_matrix, CDR, cds = True):
     total_sum = sparse_matrix.sum()
     row_sum = np.array(sparse_matrix.sum(axis=1))
     col_sum = np.array(sparse_matrix.sum(axis=0))
@@ -89,7 +95,7 @@ def gen_PPMI(sparse_matrix, SS, cds = True):
     pmi = lil_matrix(numer_mat.shape)
 
 
-    for ind, numer in tqdm(enumerate(numer_mat.T), total=len(row_sum), disable=(not SS.VERBOSE)):
+    for ind, numer in tqdm(enumerate(numer_mat.T), total=len(row_sum), disable=(not CDR.VERBOSE)):
         numer = numer.toarray()
         denom = np.multiply(row_sum[ind], col_sum.copy())
         denom[numer == 0] = 1
@@ -102,12 +108,12 @@ def gen_PPMI(sparse_matrix, SS, cds = True):
 
 
 
-def run_lowdim(ppmi,SS, dim=300):
+def run_lowdim(ppmi,CDR, dim=300):
     try:
         u, s, v = svds(ppmi,k=dim, maxiter = 5, solver ='arpack', random_state=0)
     except:
         u, s, v = randomized_svd(ppmi, n_components=dim, n_iter=5,random_state=None)
-        if SS.VERBOSE: print('RandomSVD')
+        if CDR.VERBOSE: print('RandomSVD')
     return u,s, v
 
 

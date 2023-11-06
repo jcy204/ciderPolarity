@@ -1,85 +1,115 @@
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-import json
-from .utils_funcs import text_iterate
-
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer, normalize
+import numpy as np
+import math
 
 SIA = SentimentIntensityAnalyzer()
 r_arg = {'pct':True,'method':'dense'}
 
+
 ################################ CHECK THESE THRESHOLDS ####################################
-def modify_vader(SS,remove_neutral=True):
+def modify_vader(CDR,remove_neutral=True):
     '''
     remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
                             classifies as neutral   
     '''
-
     try: 
-        df = SS.polarities
+        CDR.polarities
     except:
-        SS.create_df()
-        df = SS.polarities
-    
-    ## Filter DF
-    df_pos, df_neg, remove = filter_df(df, SS.NEU_THRESH, SS.VAR_UPPER, SS.VAR_LOWER)
-    if remove_neutral == False:
-        remove = []
-    return make_VADER_custom(df_pos, df_neg, remove)
+        CDR.create_df()    
+        
+    return Custom_VADER(CDR, remove_neutral)
 
     
-def make_VADER_custom(positive, negative, remove):
-    SIA_Custom = SentimentIntensityAnalyzer()
-    
-    for i in remove: 
-        try: del SIA_Custom.lexicon[i]
-        except: pass
-    
-    for i in positive.itertuples():
-        SIA_Custom.lexicon[i.Index] = i.polarity
-        if i.Index in SIA_Custom.emojis:
-            del SIA_Custom.emojis[i.Index]
 
-    for i in negative.itertuples():
-        SIA_Custom.lexicon[i.Index] = i.polarity
-        if i.Index in SIA_Custom.emojis:
-            del SIA_Custom.emojis[i.Index]
+
+    
+######## Rewritten VADER Functions
+class Custom_VADER(SentimentIntensityAnalyzer):
+    
+    def __init__(self, cdr, remove_neutral):
+        super().__init__()
+        self.REMOVE_NEUTRAL = remove_neutral
+        self.edit_lexicon(cdr)
+
+    def edit_lexicon(self, cdr):
+        df = cdr.polarities.copy()
+        
+        ## Filtering DF
+        df_remove = df[ (df.pos_prox.rank(**r_arg) < cdr.NEU_THRESH) 
+                      & (df.neg_prox.rank(**r_arg) < cdr.NEU_THRESH)].index.tolist()
+
+        df_k = df[~df.index.isin(df_remove)].copy()
+
+        df_k['metric'] = (df_k.pos_prox - df_k.neg_prox)#.rank(**r_arg)
+        
+        keep = int(len(df_k)*cdr.POL_THRESH/2)
+        df_pos = df_k.sort_values('metric').tail(keep)
+        df_neg = df_k.sort_values('metric').head(keep)
+
+        ## editing lexicon
+        if self.REMOVE_NEUTRAL == False:
+            df_remove = []
+    
+        for i in df_remove: 
+            try: del self.lexicon[i]
+            except: pass
             
-    return SIA_Custom
+        if cdr.SENTIMENT == False:
+            self.lexicon = {}
 
-def filter_df(df,neu_thresh, var_upper, var_lower):
+        for i in df_pos.itertuples():
+            self.lexicon[i.Index] = i.polarity
+            if i.Index in self.emojis:
+                del self.emojis[i.Index]
 
-    df_remove = df[ (df.pos_prox.rank(**r_arg) < neu_thresh) 
-                     & (df.neg_prox.rank(**r_arg) < neu_thresh)].index.tolist()
+        for i in df_neg.itertuples():
+            self.lexicon[i.Index] = i.polarity
+            if i.Index in self.emojis:
+                del self.emojis[i.Index]
     
-    df_k = df[~df.index.isin(df_remove)].copy()
-
-    df_pos = df_k[(df_k.pos_prox.rank(**r_arg)>var_upper) & (df_k.neg_prox.rank(**r_arg)<var_lower)].copy()
-    df_neg = df_k[(df_k.neg_prox.rank(**r_arg)>var_upper) & (df_k.pos_prox.rank(**r_arg)<var_lower)].copy()
-
-    return df_pos, df_neg, df_remove
-
-
-def apply_vader(self,save_outputs,return_outputs):
-    if not self.classify:
-        raise ValueError(f"""Apply model.fit() before model.transform()""")
     
-    results = []
-    
-    if save_outputs:
-        if self.VERBOSE: print(f"Saving Classified Text to: {self.paths['output_pols']}")
-        with open(self.paths['output_pols'],'w') as newfile:
-            for row in text_iterate(self, show=self.VERBOSE):
-                result = [row, self.classify.polarity_scores(row)]
-                output = json.dumps({'body':result[0],'polarity':result[1]})
-                newfile.write(output+'\n')
-                
-                if return_outputs:
-                    results.append(result)
+    def score_valence(self, sentiments, text):
 
-    elif return_outputs:
-        if self.VERBOSE: print('Returning Classified Text')
-        for row in text_iterate(self, show=self.VERBOSE):
-            result = [row, self.classify.polarity_scores(row)]
-            results.append(result)
+        if sentiments:
+            sum_s = float(sum(sentiments))
+            # compute and add emphasis from punctuation in text
+            punct_emph_amplifier = self._punctuation_emphasis(text)
+            if sum_s > 0:
+                sum_s += punct_emph_amplifier
+            elif sum_s < 0:
+                sum_s -= punct_emph_amplifier
 
-    if return_outputs:
-        return results
+            compound = normalize(sum_s)
+
+            # compute intensity from text
+            sum_c = float(sum(np.abs(sentiments)))
+            sum_c += punct_emph_amplifier
+            intensity = normalize(sum_c)
+
+            # discriminate between positive, negative and neutral sentiment scores
+            pos_sum, neg_sum, neu_count = self._sift_sentiment_scores(sentiments)
+
+            if pos_sum > math.fabs(neg_sum):
+                pos_sum += punct_emph_amplifier
+            elif pos_sum < math.fabs(neg_sum):
+                neg_sum -= punct_emph_amplifier
+
+            total = pos_sum + math.fabs(neg_sum) + neu_count
+            pos = math.fabs(pos_sum / total)
+            neg = math.fabs(neg_sum / total)
+            neu = math.fabs(neu_count / total)
+
+        else:
+            compound = 0.0
+            pos = 0.0
+            neg = 0.0
+            neu = 0.0
+
+        sentiment_dict = \
+            {"neg": round(neg, 3),
+             "neu": round(neu, 3),
+             "pos": round(pos, 3),
+             "compound": round(compound, 4),
+             "intensity": round(intensity,4)}
+
+        return sentiment_dict

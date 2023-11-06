@@ -5,11 +5,14 @@ from . import create_embeddings
 from . import run_bootstrapping
 from . import create_vader
 from . import utils_funcs
-import importlib.metadata
+try:
+    import importlib.metadata as metadata
+except:
+    from importlib_metadata import metadata
 import warnings
 import pickle
 import os
-
+from multiprocessing import Pool
 
 
 
@@ -21,15 +24,17 @@ class CIDER:
                  pos_seeds=None,
                  neg_seeds=None,
                  predefined_seeds='derived_twitter',
+                 sentiment = True,
                  max_polarities_returned=5000,
                  preprocessing = 'default',
                  stopwords='default',
                  iterations=100,
                  verbose=True,
                  no_below=100,
-                 keep=[]):
+                 keep=[],
+                 skip_negation = True):
         '''
-        Create domain specific lexicons.
+        Creates domain specific lexicons.
 
         The code can be run as follows:
             cdr = CIDER(fileinput,output)
@@ -37,30 +42,38 @@ class CIDER:
 
         Parameters
         ----------
-        fileinput - STRING/LIST - either list of STR or path of .json/.jsonl file using the format:
-                                  {'text': example_text1}
-                                  {'text': example_text2}
-                                  {'text': example_text3}
-                                    ... 
+        fileinput - STRING/LIST - either list of STR or path of .csv file where each line is a new document
+        
         output - STRING - path of folder for saving files
-        pos_seeds - LIST/DICT - upper pole seed set. Either list, e.g. ['good','great'] 
-                                                         or dict, e.g. {'good':1,'great':2}
+        
+        pos_seeds - LIST/DICT/NONETYPE - upper pole seed set. Either list, e.g. ['good','great'] 
+                                                                  or dict, e.g. {'good':1,'great':2}
 
-        neg_seeds - LIST/DICT - lower pole seed set. Either list, e.g. ['bad','terrible'] 
-                                                         or dict, e.g. {'bad':1,'terrible':2} (keep values +ve)
+        neg_seeds - LIST/DICT/NONETYPE - lower pole seed set. Either list, e.g. ['bad','terrible'] 
+                                                                  or dict, e.g. {'bad':1,'terrible':2} (keep values +ve)
 
-        predefined_seeds -STR - choose from 'derived_twitter', 'truney', 'finance', 'twitter', 'gender', 'historical'
-        max_polarities_returned - INT - maximum number of words returned
+        predefined_seeds -STR/NONETYPE - choose from 'derived_twitter', 'truney', 'finance', 'twitter', 'gender', 'historical'
+        
+        sentiment - BOOL - if seed words are not sentiment based, set as False. This then clears default VADER dict.
+
+        max_polarities_returned - INT - maximum number of words returned. Not guaranteed to reach this number.
+        
         preprocessing - STR/FUNC/NONETYPE - set as 'default' for default preprocessing, None for text.split() or a 
                                             custom function taking one input (text) and returning a preprocessed and
                                             tokenised list of words/tokens.
+
         stopwords - STR/list/None - set as 'default' to remove nltk stopwords. Or add custom list/None. 
                                     ONLY WORKS WITH "preprocessing = 'default'"
+
         iterations - INT - the number of iterations for label propagation 
 
         verbose - BOOL - display progress
+
         no_below - INT - exclude words that occur less frequently than this
+        
         keep - LIST/None - List of words to prevent being excluded
+        
+        skip_negation - BOOL - by default, documents with VADER negation terms are excluded. Set as False to include them.
         '''
 
         if type(fileinput) == str:
@@ -73,22 +86,23 @@ class CIDER:
         self.STOPWORDS = stopwords
         self.VERBOSE = verbose
         self.PREPROCESSING = preprocessing
-
+        self.SKIP_NEGATION = skip_negation
 
         ## Seed Words
         self.POS_SEEDS = pos_seeds
         self.NEG_SEEDS = neg_seeds
         self.PREDEFINED_SEEDS = predefined_seeds
+        self.SENTIMENT = sentiment
         self.SEEDS = set_seeds(self)
 
         ## Filtering Thresholds
         if keep == None: keep = []
         self.KEEP = sorted(set(self.clean_text(' '.join(keep))))
-        self.NO_ABOVE_1 = 0.5
-        self.NO_ABOVE_2 = 0.1
+        self.NO_ABOVE_1 = 0.3
+        self.NO_ABOVE_2 = 0.4
         self.NO_BELOW = no_below
         self.STATE = 0
-        self.NN = 25
+        self.NN = 20
         self.LINES = 0
         self.MAX = max_polarities_returned
 
@@ -114,14 +128,15 @@ class CIDER:
         self.scale = True
 
         ## filtering polarities parameters. These can be adjusted.
-        self.NEU_THRESH=0.45,
-        self.VAR_UPPER=0.9,
-        self.VAR_LOWER=0.5
+        self.NEU_THRESH=0.55
+        self.POL_THRESH=0.13
+        if not sentiment:
+            self.POL_THRESH=0.3
         
         ## Version
         try:
-            self.__version__ = importlib.metadata.version('ciderpolarity')
-        except importlib.metadata.PackageNotFoundError:
+            self.__version__ = metadata.version('ciderpolarity')
+        except:
             self.__version__ = 'unknown-version' 
 
     def generate_seeds(self, pos_initial, neg_initial, n=10, return_all=False, sentiment=True):
@@ -141,17 +156,23 @@ class CIDER:
     
 
 
-    def fit(self, full_run=True, remove_neutral=True):
+    def fit(self, steps='All', remove_neutral=True):
         '''
-        Train CIDER and fit a VADER model on the outputs
+        Train CIDER and fit the custom VADER model on the outputs
 
         Parameters
         ----------
-        full_run - BOOL - set as False to just return previously executed results
+        steps - str - set as 'All' to create embeddings and run bootstrapping.
+                    - set as 'Embed' to just create embeddings
+                    - set as 'Run' to run bootstrapping on already generated embeddings
         remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
                                 classifies as neutral
         '''
-        if full_run:
+
+        if steps not in ['All', 'Embed','Run']:
+            raise ValueError(f"Provide param 'steps' as one of ['All', 'Embed', 'Run']")
+        
+        if steps in ['All', 'Embed']:
             ## Generating embeddings
             for ind, _ in enumerate(utils_funcs.text_iterate(self)):
                 continue
@@ -162,13 +183,16 @@ class CIDER:
                               "polarities and to avoid potential errors.", stacklevel=2)
 
             create_embeddings.embed_text(self)
-
+            if steps == 'Embed':
+                return
+            
+        if steps in ['All', 'Run']:
             ## Running Bootstrapping
-            run_bootstrapping.propogate_labels(self)
-        
+            run_bootstrapping.propagate_labels(self)
+
         ## Loading Polarities
-        self.create_df()
-        self.train_VADER(remove_neutral)
+        self._create_df()
+        self._train_VADER(remove_neutral)
 
 
 
@@ -185,7 +209,7 @@ class CIDER:
     
 
 
-    def fit_transform(self, save_outputs=False, return_outputs = True, full_run = True, remove_neutral=True):
+    def fit_transform(self, save_outputs=False, return_outputs = True, steps = 'All', remove_neutral=True):
         '''
         Train CIDER and fit a VADER model on the outputs. Apply fitted VADER model on the inputs
         
@@ -193,22 +217,24 @@ class CIDER:
         ----------
         save_outputs - BOOL - save the outputs into .json file
         return_outputs - BOOL - return the outputs as a list
-        full_run - BOOL - set as False to just return previously executed results
+        steps - str - set as 'All' to create embeddings and run bootstrapping.
+                    - set as 'Embed' to just create embeddings
+                    - set as 'Run' to run bootstrapping on already generated embeddings
         remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
                                 classifies as neutral
         '''
-        self.fit(full_run, remove_neutral)
+        self.fit(steps, remove_neutral)
         return self.transform(save_outputs, return_outputs)
     
 
 
-    def create_df(self):
+    def _create_df(self):
         'returns polarities only'
         self.polarities = load_polarities.make_df(self)
 
 
 
-    def train_VADER(self,remove_neutral=True):
+    def _train_VADER(self,remove_neutral=True):
         '''
         trains VADER only        
         Parameters
@@ -216,9 +242,21 @@ class CIDER:
         remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
                                 classifies as neutral
         '''
-        self.classify = create_vader.modify_vader(self,remove_neutral)
-        
+        self.classifier = create_vader.modify_vader(self,remove_neutral)
 
+    def classify(self, text):
+        '''
+        pass text to classify using custom VADER
+        '''
+        return self.classifier.polarity_scores(text)
+
+    def batch_classify(self,texts):
+        '''
+        pass a list of texts to classify in batch (more efficient) with custom VADER
+        '''
+        with Pool() as pool:
+            return pool.map(self.classify, texts)
+            
     def clean_text(self,text):
         '''
         cleans and tokenises the text
@@ -230,14 +268,14 @@ class CIDER:
         if callable(self.PREPROCESSING):
             return self.PREPROCESSING(text)
 
-    def save(self, fname, var):
+    def _save(self, fname, var):
         'Function used to pickle (save) variables'
         with open(fname, "wb") as f:
             pickle.dump(var, f)
 
 
 
-    def load(self, fname):
+    def _load(self, fname):
         'Loads pickled (saved) variables'
         if fname.lower() in self.paths:
             fname = self.paths[fname.lower()]
@@ -246,12 +284,29 @@ class CIDER:
             return pickle.load(f)
 
 
+    def word_strength(self, word, top = 10, association = 'ppmi'):
+        '''
+        Returns n words strongly associated with the input word. Select between 'ppmi' or 'cooc' for association.
+        Parameters
+        ----------
+        word - STR - word to return most associated words with.
+        top - INT - number of associated words to return
+        association - STR - measures association with either 'ppmi' or 'cooc'.
+        '''
+        gdict = self._load('dict')
+        try:
+            word_loc = gdict.token2id[word]
+        except:
+            raise ValueError(f"Word not in embedded corpus")
     
-    def get_seeds(self,input = None):
-        '''
-        Either returns set seeds, or if input != None, the corresponding seed set for that input is returned 
-        '''
-        if input:
-            return seed_dict[input.lower()]
-        else:
-            return self.SEEDS
+        id2token = {gdict.token2id[i]: i for i in gdict.token2id}
+        
+        data = self._load(association)[word_loc].toarray()[0]
+        important = [i for i in data.argsort()[::-1] if i != word_loc]
+        
+        important = important[:top]
+
+        return [id2token[i] for i in important]
+    
+    
+    

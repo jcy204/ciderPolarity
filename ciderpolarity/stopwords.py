@@ -19,5 +19,5 @@ stoplist = {
                 'were', 'weren', "weren't", 'what', 'when', 'where', 'which', 'while',
                 'who', 'whom', 'why', 'will', 'with', 'won', "won't", 'wouldn', "wouldn't",
                 'y', 'you', "you'd", "you'll", "you're", "you've", 'your', 'yours',
-                'yourself', 'yourselves'
+                'yourself', 'yourselves', #'amp'
             }

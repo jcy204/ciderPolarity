@@ -8,15 +8,16 @@ from collections import Counter
 from collections import defaultdict
 
 
-def make_df(SS):
+def make_df(CDR):
     '''
     Makes df using data
     '''
     
     ### Collecting the Data
     pols = {'pos':defaultdict(list),'neg':defaultdict(list)}
-    
-    with open(SS.POLARITY_OUTPUT) as file:
+    keep = ['polarity','pos_prox','neg_prox','freq']
+
+    with open(CDR.POLARITY_OUTPUT) as file:
         for row in file:
             boot_pols = json.loads(row)
             for w in boot_pols:
@@ -31,22 +32,24 @@ def make_df(SS):
     df['polarity'] = df.pos.apply(np.array)/(df.pos.apply(np.array)+df.neg.apply(np.array))
         
     ## Word Counts
-    index = SS.load( fname = SS.OUTPUT + 'dict.pkl')
+    index = CDR._load( fname = CDR.OUTPUT + 'dict.pkl')
     word_freq = Counter({i[0]:i[1] for i in index.most_common()})
     df['freq'] = df.index.map(word_freq)     
         
 
-    if SS.CI:
-        df[f'CI_{SS.CI}'] = df['polarity'].apply(lambda x: st.norm.interval(confidence=0.95,scale=st.sem(x))[1])
-    if SS.STD:
+    if CDR.CI:
+        df[f'CI_{CDR.CI}'] = df['polarity'].apply(lambda x: st.norm.interval(confidence=0.95,scale=st.sem(x))[1])
+    if CDR.STD:
         df['polarity_std'] = df['polarity'].apply(np.std)
     
     ### Vader
-    SIA = SentimentIntensityAnalyzer()
-    df['VADER'] = df.index.to_series().apply(lambda x: SIA.lexicon[x.lower()] if x in SIA.lexicon else np.nan)
+    if CDR.SENTIMENT:
+        SIA = SentimentIntensityAnalyzer()
+        df['VADER'] = df.index.to_series().apply(lambda x: SIA.lexicon[x.lower()] if x in SIA.lexicon else np.nan)
+        keep = ['polarity','VADER','pos_prox','neg_prox','freq']
 
 
-    if SS.return_all:
+    if CDR.return_all:
         return df
     
     df['pos_prox'] = df.pos.apply(np.mean)
@@ -61,11 +64,10 @@ def make_df(SS):
     scale = df.polarity.abs().max()
     df['polarity'] = 4*df.polarity/scale
 
-    keep = ['polarity','VADER','pos_prox','neg_prox','freq']
-    if SS.CI:
-        df[f'CI_{SS.CI}'] = 4*df[f'CI_{SS.CI}']/scale
-        keep.append(f'CI_{SS.CI}')
-    if SS.STD:
+    if CDR.CI:
+        df[f'CI_{CDR.CI}'] = 4*df[f'CI_{CDR.CI}']/scale
+        keep.append(f'CI_{CDR.CI}')
+    if CDR.STD:
         df['polarity_std'] = 4*df['polarity_std']/scale
         keep.append('polarity_std')
     df = df[keep]
