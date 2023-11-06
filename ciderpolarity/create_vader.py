@@ -1,6 +1,8 @@
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer, normalize
 import numpy as np
 import math
+from . import utils_funcs
+import json
 
 SIA = SentimentIntensityAnalyzer()
 r_arg = {'pct':True,'method':'dense'}
@@ -20,7 +22,31 @@ def modify_vader(CDR,remove_neutral=True):
     return Custom_VADER(CDR, remove_neutral)
 
     
+def apply_vader(CDR,save_outputs,return_outputs):
+    if not CDR.classify:
+        raise ValueError(f"""Apply model.fit() before model.transform()""")
+    
+    results = []
+    
+    if save_outputs:
+        if CDR.VERBOSE: print(f"Saving Classified Text to: {CDR.paths['output_pols']}")
+        with open(CDR.paths['output_pols'],'w') as newfile:
+            for row in utils_funcs.text_iterate(CDR, show=CDR.VERBOSE):
+                result = [row, CDR.classify(row)]
+                output = json.dumps({'text':result[0],'polarity':result[1]})
+                newfile.write(output+'\n')
+                
+                if return_outputs:
+                    results.append(result)
 
+    elif return_outputs:
+        if CDR.VERBOSE: print('Returning Classified Text')
+        for row in utils_funcs.text_iterate(CDR, show=CDR.VERBOSE):
+            result = [row, CDR.classify(row)]
+            results.append(result)
+
+    if return_outputs:
+        return results
 
     
 ######## Rewritten VADER Functions

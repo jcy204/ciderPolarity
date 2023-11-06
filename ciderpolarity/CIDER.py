@@ -1,4 +1,4 @@
-from .suggest_seeds import set_seeds, custom_seeds, seed_dict
+from .suggest_seeds import set_seeds, custom_seeds
 from .stopwords import stoplist
 from . import load_polarities
 from . import create_embeddings
@@ -118,7 +118,7 @@ class CIDER:
             'ppmi': f'{self.OUTPUT}ppmi.pkl',
             'cooc': f'{self.OUTPUT}cooc.pkl',
             'ppmi_index': f'{self.OUTPUT}ppmi_index.pkl',
-            'output_pols': f'{self.OUTPUT}output.json'
+            'output_pols': f'{self.OUTPUT}classified_text_output.json'
         }
 
         ## returned dataframe parameters
@@ -259,7 +259,7 @@ class CIDER:
             
     def clean_text(self,text):
         '''
-        cleans and tokenises the text
+        cleans and tokenises text
         '''
         if self.PREPROCESSING == 'default':
             return utils_funcs.default_clean_text(self, text)
