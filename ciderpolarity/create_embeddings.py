@@ -60,7 +60,7 @@ def embed_text(CDR):
     
     CDR._save( fname = CDR.OUTPUT + 'dict.pkl', var = gdict)
 
-def gen_cooc(gdict,CDR, tfidf = False):
+def gen_cooc(gdict,CDR):
     bow_corpus = []
     dup_corpus = Counter()
 
@@ -74,9 +74,6 @@ def gen_cooc(gdict,CDR, tfidf = False):
         mat = gdict.doc2bow(processed_comment)
         bow_corpus += [mat]
         dup_corpus.update(dict(mat)) # To subtract diagonal 
-
-    if tfidf:
-        return bow_corpus
         
     term_doc_mat = corpus2csc(bow_corpus)
     cooc = np.dot(term_doc_mat, term_doc_mat.T)

@@ -9,7 +9,7 @@ except:
 import json
 
 
-def propogate_labels(CDR):
+def propagate_labels(CDR):
 
     ### Loading words to keep
     keep = list(CDR.KEEP)

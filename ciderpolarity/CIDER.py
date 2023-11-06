@@ -13,7 +13,6 @@ import warnings
 import pickle
 import os
 from multiprocessing import Pool
-from functools import partial
 
 
 
@@ -43,30 +42,38 @@ class CIDER:
 
         Parameters
         ----------
-        fileinput - STRING/LIST - either list of STR or path of .json/.jsonl file using the format:
-                                  {'text': example_text1}
-                                  {'text': example_text2}
-                                  {'text': example_text3}
-                                    ... 
+        fileinput - STRING/LIST - either list of STR or path of .csv file where each line is a new document
+        
         output - STRING - path of folder for saving files
-        pos_seeds - LIST/DICT - upper pole seed set. Either list, e.g. ['good','great'] 
-                                                         or dict, e.g. {'good':1,'great':2}
+        
+        pos_seeds - LIST/DICT/NONETYPE - upper pole seed set. Either list, e.g. ['good','great'] 
+                                                                  or dict, e.g. {'good':1,'great':2}
 
-        neg_seeds - LIST/DICT - lower pole seed set. Either list, e.g. ['bad','terrible'] 
-                                                         or dict, e.g. {'bad':1,'terrible':2} (keep values +ve)
+        neg_seeds - LIST/DICT/NONETYPE - lower pole seed set. Either list, e.g. ['bad','terrible'] 
+                                                                  or dict, e.g. {'bad':1,'terrible':2} (keep values +ve)
 
-        predefined_seeds -STR - choose from 'derived_twitter', 'truney', 'finance', 'twitter', 'gender', 'historical'
-        max_polarities_returned - INT - maximum number of words returned
+        predefined_seeds -STR/NONETYPE - choose from 'derived_twitter', 'truney', 'finance', 'twitter', 'gender', 'historical'
+        
+        sentiment - BOOL - if seed words are not sentiment based, set as False. This then clears default VADER dict.
+
+        max_polarities_returned - INT - maximum number of words returned. Not guaranteed to reach this number.
+        
         preprocessing - STR/FUNC/NONETYPE - set as 'default' for default preprocessing, None for text.split() or a 
                                             custom function taking one input (text) and returning a preprocessed and
                                             tokenised list of words/tokens.
+
         stopwords - STR/list/None - set as 'default' to remove nltk stopwords. Or add custom list/None. 
                                     ONLY WORKS WITH "preprocessing = 'default'"
+
         iterations - INT - the number of iterations for label propagation 
 
         verbose - BOOL - display progress
+
         no_below - INT - exclude words that occur less frequently than this
+        
         keep - LIST/None - List of words to prevent being excluded
+        
+        skip_negation - BOOL - by default, documents with VADER negation terms are excluded. Set as False to include them.
         '''
 
         if type(fileinput) == str:
@@ -149,17 +156,23 @@ class CIDER:
     
 
 
-    def fit(self, full_run=True, remove_neutral=True, run_only=False, gen_only=False):
+    def fit(self, steps='All', remove_neutral=True):
         '''
-        Train CIDER and fit a VADER model on the outputs
+        Train CIDER and fit the custom VADER model on the outputs
 
         Parameters
         ----------
-        full_run - BOOL - set as False to just return previously executed results
+        steps - str - set as 'All' to create embeddings and run bootstrapping.
+                    - set as 'Embed' to just create embeddings
+                    - set as 'Run' to run bootstrapping on already generated embeddings
         remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
                                 classifies as neutral
         '''
-        if full_run:
+
+        if steps not in ['All', 'Embed','Run']:
+            raise ValueError(f"Provide param 'steps' as one of ['All', 'Embed', 'Run']")
+        
+        if steps in ['All', 'Embed']:
             ## Generating embeddings
             for ind, _ in enumerate(utils_funcs.text_iterate(self)):
                 continue
@@ -170,11 +183,12 @@ class CIDER:
                               "polarities and to avoid potential errors.", stacklevel=2)
 
             create_embeddings.embed_text(self)
-            if gen_only:
+            if steps == 'Embed':
                 return
-        if full_run | run_only:
+            
+        if steps in ['All', 'Run']:
             ## Running Bootstrapping
-            run_bootstrapping.propogate_labels(self)
+            run_bootstrapping.propagate_labels(self)
 
         ## Loading Polarities
         self._create_df()
@@ -195,7 +209,7 @@ class CIDER:
     
 
 
-    def fit_transform(self, save_outputs=False, return_outputs = True, full_run = True, remove_neutral=True):
+    def fit_transform(self, save_outputs=False, return_outputs = True, steps = 'All', remove_neutral=True):
         '''
         Train CIDER and fit a VADER model on the outputs. Apply fitted VADER model on the inputs
         
@@ -203,11 +217,13 @@ class CIDER:
         ----------
         save_outputs - BOOL - save the outputs into .json file
         return_outputs - BOOL - return the outputs as a list
-        full_run - BOOL - set as False to just return previously executed results
+        steps - str - set as 'All' to create embeddings and run bootstrapping.
+                    - set as 'Embed' to just create embeddings
+                    - set as 'Run' to run bootstrapping on already generated embeddings
         remove_neutral - BOOL - set as True to remove words from VADER that CIDER 
                                 classifies as neutral
         '''
-        self.fit(full_run, remove_neutral)
+        self.fit(steps, remove_neutral)
         return self.transform(save_outputs, return_outputs)
     
 
@@ -229,9 +245,15 @@ class CIDER:
         self.classifier = create_vader.modify_vader(self,remove_neutral)
 
     def classify(self, text):
+        '''
+        pass text to classify using custom VADER
+        '''
         return self.classifier.polarity_scores(text)
 
     def batch_classify(self,texts):
+        '''
+        pass a list of texts to classify in batch (more efficient) with custom VADER
+        '''
         with Pool() as pool:
             return pool.map(self.classify, texts)
             
@@ -262,24 +284,21 @@ class CIDER:
             return pickle.load(f)
 
 
-    
-    def _get_seeds(self,input = None):
-        '''
-        Either returns set seeds, or if input != None, the corresponding seed set for that input is returned 
-        '''
-        if input:
-            return seed_dict[input.lower()]
-        else:
-            return self.SEEDS
-
-
-
     def word_strength(self, word, top = 10, association = 'ppmi'):
         '''
         Returns n words strongly associated with the input word. Select between 'ppmi' or 'cooc' for association.
+        Parameters
+        ----------
+        word - STR - word to return most associated words with.
+        top - INT - number of associated words to return
+        association - STR - measures association with either 'ppmi' or 'cooc'.
         '''
         gdict = self._load('dict')
-        word_loc = gdict.token2id[word]
+        try:
+            word_loc = gdict.token2id[word]
+        except:
+            raise ValueError(f"Word not in embedded corpus")
+    
         id2token = {gdict.token2id[i]: i for i in gdict.token2id}
         
         data = self._load(association)[word_loc].toarray()[0]

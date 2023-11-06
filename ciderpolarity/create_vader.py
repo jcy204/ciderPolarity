@@ -1,7 +1,5 @@
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer, SentiText, normalize, BOOSTER_DICT
-import json
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer, normalize
 import numpy as np
-from .utils_funcs import text_iterate
 import math
 
 SIA = SentimentIntensityAnalyzer()
