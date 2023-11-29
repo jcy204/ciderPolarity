@@ -127,6 +127,7 @@ class Custom_VADER(SentimentIntensityAnalyzer):
 
         else:
             compound = 0.0
+            intensity = 0.0
             pos = 0.0
             neg = 0.0
             neu = 0.0
