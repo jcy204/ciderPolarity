@@ -72,7 +72,7 @@ def set_seeds(CDR):
             return [pos_seeds,neg_seeds]
 
         if type(seeds[0]) == dict:
-            seeds = list(seeds[0].keys()) + list(seeds[1].keys())
+            # seeds = list(seeds[0].keys()) + list(seeds[1].keys())
             CDR.STOPWORDS = set([i for i in CDR.STOPWORDS if i not in seeds])
             pos_seeds = {CDR.clean_text(i)[0]: seeds[0][i] for i in sorted(seeds[0])}
             neg_seeds = {CDR.clean_text(i)[0]: seeds[1][i] for i in sorted(seeds[1])}
