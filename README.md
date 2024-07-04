@@ -1,6 +1,6 @@
 # CIDER Python Package
 
-**Preprint Available:** https://arxiv.org/abs/2307.07864
+**Paper Available:** https://doi.org/10.1371/journal.pone.0299490
 
 CIDER (Context Informed Dictionary and sEntiment Reasoner) is a Python library used to improve domain-specific sentiment analysis.
 
